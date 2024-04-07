@@ -1,0 +1,71 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+
+# Load the Titanic dataset
+data = pd.read_csv("train.csv")
+
+# Display a small part of the dataset
+print("Sample of the Titanic dataset:")
+print(data.head())
+
+# Perform data preprocessing
+# Drop irrelevant columns
+data = data.drop(["PassengerId", "Name", "Ticket", "Cabin"], axis=1)
+
+# Impute missing values
+numeric_features = ['Age', 'Fare']
+categorical_features = ['Sex', 'Embarked']
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())])
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)])
+
+# Split data into features and target variable
+X = data.drop("Survived", axis=1)
+y = data["Survived"]
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize and train the model
+model = Pipeline(steps=[('preprocessor', preprocessor),
+                        ('classifier', RandomForestClassifier(random_state=42))])
+
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print("\nAccuracy:", accuracy)
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# Plot survival status count
+plt.figure(figsize=(6, 4))
+sns.countplot(data=data, x='Survived')
+plt.title('Survival Status Count')
+plt.xlabel('Survival Status')
+plt.ylabel('Count of Passengers')
+plt.show()
